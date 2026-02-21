@@ -92,6 +92,64 @@ Separateur : `;` (point-virgule, compatible Excel FR)
 
 Chaque recette genere **une ligne par composant**, ce qui permet de creer des tableaux croises dynamiques pour analyser les couts de materiaux.
 
+## Importer dans Excel
+
+1. Copier les donnees depuis la fenetre d'export (`Ctrl+A`, `Ctrl+C`)
+2. Ouvrir **Excel** > nouvelle feuille
+3. Coller dans la cellule **A1** (`Ctrl+V`)
+4. Si les donnees arrivent dans une seule colonne :
+   - Selectionner la colonne A
+   - Onglet **Donnees** > **Convertir**
+   - Choisir **Delimite** > Suivant
+   - Cocher **Point-virgule** comme separateur > Terminer
+
+### Mettre en forme
+
+1. Selectionner toutes les donnees (`Ctrl+A`)
+2. Onglet **Insertion** > **Tableau** (ou `Ctrl+T`) > cocher "Mon tableau comporte des en-tetes" > OK
+3. Chaque colonne a maintenant une **fleche de filtre** dans l'en-tete
+
+### Filtrer les donnees
+
+- Cliquer la fleche d'une colonne pour filtrer (ex: **Categorie** > cocher uniquement "Cuir")
+- **Difficulte** : filtrer par `optimal`, `medium`, `easy`, `trivial`
+- **Stats** : Filtre numerique > *Superieur a* pour trouver les objets avec beaucoup d'Endurance, etc.
+- **Reagent** : filtrer pour voir toutes les recettes utilisant un composant precis
+
+### Tableau croise dynamique
+
+1. Selectionner le tableau > **Insertion** > **Tableau croise dynamique**
+2. Exemples d'analyses :
+   - **Lignes** : Reagent, **Valeurs** : Somme de Quantite → total de chaque composant necessaire
+   - **Lignes** : Nom de la recette, **Colonnes** : Difficulte → repartition par difficulte
+   - **Filtre** : Categorie → analyser une seule categorie
+
+## Importer dans Google Sheets
+
+1. Copier les donnees depuis la fenetre d'export (`Ctrl+A`, `Ctrl+C`)
+2. Ouvrir **Google Sheets** > nouvelle feuille
+3. Coller dans la cellule **A1** (`Ctrl+V`)
+4. Si les donnees arrivent dans une seule colonne :
+   - Menu **Donnees** > **Scinder le texte en colonnes**
+   - Selecteur de separateur > **Point-virgule**
+
+### Mettre en forme
+
+1. Selectionner la ligne 1 (en-tetes) > **Mettre en gras** (`Ctrl+B`)
+2. Menu **Affichage** > **Figer** > **1 ligne** (garde les en-tetes visibles au scroll)
+3. Selectionner toutes les donnees > Menu **Format** > **Alternance de couleurs** pour un rendu zebré
+
+### Filtrer les donnees
+
+1. Selectionner toutes les donnees > Menu **Donnees** > **Creer un filtre**
+2. Cliquer l'icone de filtre sur chaque colonne pour filtrer
+3. Utiliser **Filtrer par condition** > *Superieur a* pour les colonnes numeriques (stats, niveaux)
+
+### Tableau croise dynamique
+
+1. Selectionner les donnees > **Insertion** > **Tableau croise dynamique**
+2. Memes analyses que pour Excel (voir ci-dessus)
+
 ## Structure du projet
 
 ```
