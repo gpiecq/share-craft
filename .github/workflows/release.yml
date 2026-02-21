@@ -26,10 +26,10 @@ jobs:
 
       - name: Build zip
         run: |
-          mkdir -p build/ShareCraft
-          cp ShareCraft.toc Data.lua Core.lua Scanner.lua Export.lua UI.lua build/ShareCraft/
-          cd build
-          zip -r "../ShareCraft-${{ steps.version.outputs.version }}.zip" ShareCraft/
+          cp ShareCraft.toc Data.lua Core.lua Scanner.lua Export.lua UI.lua /tmp/
+          cd /tmp
+          zip ShareCraft.zip ShareCraft.toc Data.lua Core.lua Scanner.lua Export.lua UI.lua
+          cp ShareCraft.zip "$GITHUB_WORKSPACE/"
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
@@ -40,8 +40,9 @@ jobs:
             ## ShareCraft v${{ steps.version.outputs.version }}
 
             ### Installation
-            1. Telecharger `ShareCraft-${{ steps.version.outputs.version }}.zip`
+            1. Telecharger `ShareCraft.zip`
             2. Extraire dans `World of Warcraft/_anniversary_/Interface/AddOns/`
-            3. `/reload` en jeu
-          files: ShareCraft-${{ steps.version.outputs.version }}.zip
+            3. Le dossier `ShareCraft` est cree automatiquement
+            4. `/reload` en jeu
+          files: ShareCraft.zip
           generate_release_notes: true
