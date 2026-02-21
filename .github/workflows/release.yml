@@ -1,0 +1,44 @@
+name: Package & Release
+
+on:
+  pull_request:
+    types: [closed]
+    branches: [main]
+
+jobs:
+  release:
+    if: github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Extract version from TOC
+        id: version
+        run: |
+          VERSION=$(grep "^## Version:" ShareCraft.toc | sed 's/## Version: //')
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "Detected version: $VERSION"
+
+      - name: Build zip
+        run: |
+          mkdir -p build/ShareCraft
+          cp ShareCraft.toc Data.lua Core.lua Scanner.lua Export.lua UI.lua build/ShareCraft/
+          cd build
+          zip -r "../ShareCraft-${{ steps.version.outputs.version }}.zip" ShareCraft/
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ steps.version.outputs.version }}
+          name: ShareCraft v${{ steps.version.outputs.version }}
+          body: |
+            ## ShareCraft v${{ steps.version.outputs.version }}
+
+            ### Installation
+            1. Telecharger `ShareCraft-${{ steps.version.outputs.version }}.zip`
+            2. Extraire dans `World of Warcraft/_anniversary_/Interface/AddOns/`
+            3. `/reload` en jeu
+          files: ShareCraft-${{ steps.version.outputs.version }}.zip
+          generate_release_notes: true
