@@ -1,0 +1,12 @@
+## Interface: 40400
+## Title: ShareCraft
+## Notes: Exporte les recettes de metiers au format CSV
+## Author: ShareCraft
+## Version: 1.0.0
+## SavedVariablesPerCharacter: ShareCraftDB
+
+Data.lua
+Core.lua
+Scanner.lua
+Export.lua
+UI.lua

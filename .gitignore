@@ -1,0 +1,17 @@
+# IDE
+.idea/
+.vscode/
+*.iml
+
+# Claude
+.claude/
+
+# OS
+Thumbs.db
+.DS_Store
+
+# Screenshots (dev only)
+screen/
+
+# Packages
+*.zip
