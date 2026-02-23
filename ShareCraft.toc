@@ -2,7 +2,7 @@
 ## Title: ShareCraft
 ## Notes: Exporte les recettes de metiers au format CSV
 ## Author: gpiecq
-## Version: 1.0.0
+## Version: 1.0.1
 ## SavedVariablesPerCharacter: ShareCraftDB
 
 Data.lua
