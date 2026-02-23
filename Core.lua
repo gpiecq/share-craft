@@ -18,8 +18,11 @@ local frame = CreateFrame("Frame")
 frame:RegisterEvent("ADDON_LOADED")
 frame:RegisterEvent("TRADE_SKILL_SHOW")
 frame:RegisterEvent("TRADE_SKILL_UPDATE")
+frame:RegisterEvent("CRAFT_SHOW")
+frame:RegisterEvent("CRAFT_UPDATE")
 
 local scanPending = false
+local craftScanPending = false
 
 frame:SetScript("OnEvent", function(self, event, ...)
     if event == "ADDON_LOADED" then
@@ -43,9 +46,25 @@ frame:SetScript("OnEvent", function(self, event, ...)
         debugPrint("Event: TRADE_SKILL_UPDATE")
         if scanPending then
             scanPending = false
-            -- Small delay to let data fully populate
             C_Timer.After(0.3, function()
                 SC:ScanTradeSkill()
+            end)
+        end
+    elseif event == "CRAFT_SHOW" then
+        debugPrint("Event: CRAFT_SHOW")
+        craftScanPending = true
+        C_Timer.After(0.5, function()
+            if craftScanPending then
+                craftScanPending = false
+                SC:ScanCraft()
+            end
+        end)
+    elseif event == "CRAFT_UPDATE" then
+        debugPrint("Event: CRAFT_UPDATE")
+        if craftScanPending then
+            craftScanPending = false
+            C_Timer.After(0.3, function()
+                SC:ScanCraft()
             end)
         end
     end

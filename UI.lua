@@ -462,11 +462,68 @@ local function AttachTradeSkillButton()
     tradeSkillButton = btn
 end
 
--- Hook into TradeSkillFrame when it loads
+-- ============================================================
+-- Button on CraftFrame (Enchanting)
+-- ============================================================
+
+local craftButton = nil
+
+local function AttachCraftButton()
+    if craftButton then return end
+    if not CraftFrame then return end
+
+    local btn = CreateFrame("Button", "ShareCraftCraftBtn", CraftFrame, "BackdropTemplate")
+    btn:SetSize(90, 22)
+    btn:SetBackdrop(BACKDROP_INFO)
+    btn:SetBackdropColor(unpack(COLOR_BTN))
+    btn:SetBackdropBorderColor(unpack(COLOR_BORDER))
+
+    local closeBtn = CraftFrameCloseButton or _G["CraftFrameCloseButton"]
+    if closeBtn and closeBtn:IsVisible() then
+        btn:SetPoint("RIGHT", closeBtn, "LEFT", -4, 0)
+    else
+        btn:SetPoint("TOPRIGHT", CraftFrame, "TOPRIGHT", -28, -2)
+    end
+
+    btn:SetFrameStrata("HIGH")
+    btn:SetFrameLevel(CraftFrame:GetFrameLevel() + 10)
+
+    btn.text = btn:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+    btn.text:SetPoint("CENTER")
+    btn.text:SetText("Export CSV")
+    btn.text:SetTextColor(unpack(COLOR_ACCENT))
+
+    btn:SetScript("OnEnter", function(self)
+        self:SetBackdropBorderColor(unpack(COLOR_ACCENT))
+        self:SetBackdropColor(unpack(COLOR_BTN_HOVER))
+    end)
+    btn:SetScript("OnLeave", function(self)
+        self:SetBackdropBorderColor(unpack(COLOR_BORDER))
+        self:SetBackdropColor(unpack(COLOR_BTN))
+    end)
+    btn:SetScript("OnClick", function()
+        local skillName = GetCraftDisplaySkillLine()
+        if not skillName or skillName == "" then
+            print("|cff00ccff[ShareCraft]|r Aucun metier ouvert.")
+            return
+        end
+        SC:ScanCraft()
+        SC:ShowExportWindow(skillName, "All")
+    end)
+
+    craftButton = btn
+end
+
+-- Hook into both TradeSkillFrame and CraftFrame
 local hookFrame = CreateFrame("Frame")
 hookFrame:RegisterEvent("TRADE_SKILL_SHOW")
-hookFrame:SetScript("OnEvent", function()
-    AttachTradeSkillButton()
+hookFrame:RegisterEvent("CRAFT_SHOW")
+hookFrame:SetScript("OnEvent", function(self, event)
+    if event == "TRADE_SKILL_SHOW" then
+        AttachTradeSkillButton()
+    elseif event == "CRAFT_SHOW" then
+        AttachCraftButton()
+    end
 end)
 
 -- ============================================================
