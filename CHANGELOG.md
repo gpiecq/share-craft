@@ -1,5 +1,24 @@
 # Changelog
 
+## [2.0.0] - 2026-02-24
+
+### Ajouts
+- Synchronisation des recettes entre membres de guilde via canal addon GUILD
+- Protocole hash-based (HELLO/REQUEST/DATA/DATACHUNK/PRIVACY) avec chunking
+- Onglet "Guilde" : recherche par joueur, metier et recette
+- Onglet "Membres" : liste des joueurs synchronises avec nombre de recettes et date
+- Export CSV des recettes de guilde (memes colonnes + "Dernier scan")
+- Systeme de vie privee par metier (opt-in par defaut)
+- Bouton minimap
+- Tooltip enrichi : survoler un objet montre les artisans de guilde
+- Localisation complete FR/EN (UI, messages, CSV headers, patterns de parsing)
+
+### Technique
+- Nouveaux fichiers : GuildDB.lua, Comm.lua
+- Table SC.L partagee dans Data.lua pour la localisation
+- SavedVariables : ShareCraftGuildDB (donnees guilde, partagees entre personnages)
+- Nouvelles commandes : `/sc sync`, `/sc privacy`
+
 ## [1.0.1] - 2026-02-21
 
 ### Ajouts
