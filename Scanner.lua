@@ -217,6 +217,13 @@ function SC:FillItemInfo(recipe, index)
     recipe.greenLines = {}
 
     if not itemLink then
+        -- Enchanting: no item produced, scan spell tooltip for description
+        local recipeLink = GetTradeSkillRecipeLink(index)
+        if recipeLink then
+            scanTooltip:ClearLines()
+            scanTooltip:SetHyperlink(recipeLink)
+            ParseTooltipLines(recipe)
+        end
         return
     end
 
@@ -393,6 +400,12 @@ function SC:FillCraftItemInfo(recipe, index)
     recipe.greenLines = {}
 
     if not itemLink then
+        -- Enchanting: no item produced, get spell description instead
+        local desc = GetCraftDescription(index)
+        if desc and desc ~= "" then
+            desc = desc:gsub("\r\n", " "):gsub("\n", " "):gsub("%s+", " ")
+            table.insert(recipe.greenLines, strtrim(desc))
+        end
         return
     end
 
@@ -412,6 +425,15 @@ function SC:FillCraftItemInfo(recipe, index)
     scanTooltip:ClearLines()
     scanTooltip:SetHyperlink(itemLink)
     ParseTooltipLines(recipe)
+
+    -- Enchanting fallback: if no green lines from item tooltip, try GetCraftDescription
+    if #recipe.greenLines == 0 then
+        local desc = GetCraftDescription(index)
+        if desc and desc ~= "" then
+            desc = desc:gsub("\r\n", " "):gsub("\n", " "):gsub("%s+", " ")
+            table.insert(recipe.greenLines, strtrim(desc))
+        end
+    end
 end
 
 function SC:ParseStatLine(stats, text)
