@@ -1,8 +1,42 @@
 local addonName, SC = ...
+local L = SC.L
 
 -- Hidden tooltip for scanning
 local scanTooltip = CreateFrame("GameTooltip", "ShareCraftScanTooltip", nil, "GameTooltipTemplate")
 scanTooltip:SetOwner(WorldFrame, "ANCHOR_NONE")
+
+-- Compute a hash of current recipe names for change detection
+local function GetCurrentRecipeHash(skillName)
+    if not SC.db or not SC.db[skillName] or not SC.db[skillName].recipes then
+        return nil
+    end
+    local names = {}
+    for _, recipe in ipairs(SC.db[skillName].recipes) do
+        if recipe.name then
+            table.insert(names, recipe.name)
+        end
+    end
+    if #names == 0 then return nil end
+    return SC:HashRecipes(names)
+end
+
+-- After a scan, detect changes and sync guild if needed
+local function SyncGuildIfChanged(skillName, oldHash, newRecipeCount)
+    if not SC.guildDB then return end
+
+    local newHash = GetCurrentRecipeHash(skillName)
+    if oldHash ~= newHash then
+        local msg = string.format(L.scan_recipes, newRecipeCount)
+        if oldHash then
+            msg = L.scan_new_recipes
+        end
+        print(string.format("|cff00ccff[ShareCraft]|r " .. L.scan_sync_msg, skillName, msg))
+        SC:UpdateMyCharacterData()
+        SC:SendHello()
+    else
+        SC.debugPrint(string.format(L.scan_no_change, skillName))
+    end
+end
 
 function SC:ScanTradeSkill()
     local debugPrint = SC.debugPrint or function() end
@@ -14,6 +48,9 @@ function SC:ScanTradeSkill()
         debugPrint("Abandon: skillName invalide")
         return
     end
+
+    -- Hash before scan for change detection
+    local oldHash = GetCurrentRecipeHash(skillName)
 
     local numSkills = GetNumTradeSkills()
     debugPrint("GetNumTradeSkills() =", tostring(numSkills))
@@ -37,13 +74,13 @@ function SC:ScanTradeSkill()
 
     local recipes = {}
     local categories = {}
-    local currentCategory = "Autre"
+    local currentCategory = L.label_other
 
     for i = 1, numSkills do
         local name, skillType = GetTradeSkillInfo(i)
 
         if skillType == "header" then
-            currentCategory = name or "Autre"
+            currentCategory = name or L.label_other
             categories[currentCategory] = true
             debugPrint(string.format("  Header: '%s'", currentCategory))
         elseif name then
@@ -83,7 +120,10 @@ function SC:ScanTradeSkill()
         playerName = UnitName("player"),
     }
 
-    print(string.format("|cff00ccff[ShareCraft]|r %s : %d recettes scannees.", skillName, #recipes))
+    print(string.format("|cff00ccff[ShareCraft]|r " .. L.scan_recipes_count, skillName, #recipes))
+
+    -- Sync guild only if recipes changed
+    SyncGuildIfChanged(skillName, oldHash, #recipes)
 end
 
 function SC:GetReagentsList(index)
@@ -135,11 +175,37 @@ function SC:GetSpellID(index)
     return spellID and tonumber(spellID) or nil
 end
 
+-- Detect green tooltip lines by text pattern (locale-aware)
+local function IsGreenLine(text)
+    for _, pattern in ipairs(L.green_patterns) do
+        if text:find(pattern) then return true end
+    end
+    return false
+end
+
+-- Parse a tooltip into stats and green lines
+local function ParseTooltipLines(recipe)
+    local numLines = scanTooltip:NumLines()
+    for i = 2, numLines do
+        local textLeft = _G["ShareCraftScanTooltipTextLeft" .. i]
+        if textLeft then
+            local text = textLeft:GetText()
+            if text then
+                SC:ParseStatLine(recipe.stats, text)
+                if IsGreenLine(text) then
+                    table.insert(recipe.greenLines, text)
+                end
+            end
+        end
+    end
+end
+
 function SC:FillItemInfo(recipe, index)
     local itemLink = GetTradeSkillItemLink(index)
 
     recipe.itemLevel = 0
     recipe.requiredLevel = 0
+    recipe.quality = 1
     recipe.stats = {
         armor = 0,
         strength = 0,
@@ -148,30 +214,29 @@ function SC:FillItemInfo(recipe, index)
         intellect = 0,
         spirit = 0,
     }
+    recipe.greenLines = {}
 
     if not itemLink then
         return
     end
 
-    -- Get ilvl and required level from GetItemInfo
-    local _, _, _, itemLevel, itemMinLevel = GetItemInfo(itemLink)
+    -- Extract itemID from link for cross-locale tooltip matching
+    local itemID = tonumber(itemLink:match("item:(%d+)"))
+    if itemID then
+        recipe.itemID = itemID
+    end
+
+    local itemName, _, itemQuality, itemLevel, itemMinLevel = GetItemInfo(itemLink)
+    recipe.quality = itemQuality or 1
     recipe.itemLevel = itemLevel or 0
     recipe.requiredLevel = itemMinLevel or 0
+    if itemName and itemName ~= recipe.name then
+        recipe.itemName = itemName
+    end
 
-    -- Parse stats from tooltip
     scanTooltip:ClearLines()
     scanTooltip:SetHyperlink(itemLink)
-
-    local numLines = scanTooltip:NumLines()
-    for i = 2, numLines do
-        local textLeft = _G["ShareCraftScanTooltipTextLeft" .. i]
-        if textLeft then
-            local text = textLeft:GetText()
-            if text then
-                SC:ParseStatLine(recipe.stats, text)
-            end
-        end
-    end
+    ParseTooltipLines(recipe)
 end
 
 -- ============================================================
@@ -188,6 +253,9 @@ function SC:ScanCraft()
         debugPrint("Abandon: craft skillName invalide")
         return
     end
+
+    -- Hash before scan for change detection
+    local oldHash = GetCurrentRecipeHash(skillName)
 
     local numCrafts = GetNumCrafts()
     debugPrint("GetNumCrafts() =", tostring(numCrafts))
@@ -210,13 +278,13 @@ function SC:ScanCraft()
 
     local recipes = {}
     local categories = {}
-    local currentCategory = "Autre"
+    local currentCategory = L.label_other
 
     for i = 1, numCrafts do
         local name, _, skillType = GetCraftInfo(i)
 
         if skillType == "header" then
-            currentCategory = name or "Autre"
+            currentCategory = name or L.label_other
             categories[currentCategory] = true
             debugPrint(string.format("  Header: '%s'", currentCategory))
         elseif name then
@@ -253,7 +321,10 @@ function SC:ScanCraft()
         playerName = UnitName("player"),
     }
 
-    print(string.format("|cff00ccff[ShareCraft]|r %s : %d recettes scannees.", skillName, #recipes))
+    print(string.format("|cff00ccff[ShareCraft]|r " .. L.scan_recipes_count, skillName, #recipes))
+
+    -- Sync guild only if recipes changed
+    SyncGuildIfChanged(skillName, oldHash, #recipes)
 end
 
 function SC:GetCraftReagentsList(index)
@@ -310,6 +381,7 @@ function SC:FillCraftItemInfo(recipe, index)
 
     recipe.itemLevel = 0
     recipe.requiredLevel = 0
+    recipe.quality = 1
     recipe.stats = {
         armor = 0,
         strength = 0,
@@ -318,61 +390,54 @@ function SC:FillCraftItemInfo(recipe, index)
         intellect = 0,
         spirit = 0,
     }
+    recipe.greenLines = {}
 
     if not itemLink then
         return
     end
 
-    local _, _, _, itemLevel, itemMinLevel = GetItemInfo(itemLink)
+    local itemID = tonumber(itemLink:match("item:(%d+)"))
+    if itemID then
+        recipe.itemID = itemID
+    end
+
+    local itemName, _, itemQuality, itemLevel, itemMinLevel = GetItemInfo(itemLink)
+    recipe.quality = itemQuality or 1
     recipe.itemLevel = itemLevel or 0
     recipe.requiredLevel = itemMinLevel or 0
+    if itemName and itemName ~= recipe.name then
+        recipe.itemName = itemName
+    end
 
     scanTooltip:ClearLines()
     scanTooltip:SetHyperlink(itemLink)
-
-    local numLines = scanTooltip:NumLines()
-    for i = 2, numLines do
-        local textLeft = _G["ShareCraftScanTooltipTextLeft" .. i]
-        if textLeft then
-            local text = textLeft:GetText()
-            if text then
-                SC:ParseStatLine(recipe.stats, text)
-            end
-        end
-    end
+    ParseTooltipLines(recipe)
 end
 
 function SC:ParseStatLine(stats, text)
-    -- Armor: "250 Armure" or "250 points d'armure"
-    local armor = text:match("^(%d+) [Aa]rmure")
-    if not armor then
-        armor = text:match("^(%d+) points d'armure")
-    end
-    if armor then
-        stats.armor = tonumber(armor) or 0
-        return
+    -- Armor (locale-aware patterns)
+    for _, pattern in ipairs(L.stat_armor_patterns) do
+        local armor = text:match(pattern)
+        if armor then
+            stats.armor = tonumber(armor) or 0
+            return
+        end
     end
 
-    -- Primary stats: "+12 Endurance", "+8 Agilité", etc.
+    -- Primary stats: "+12 Stamina", "+8 Agility", etc.
     local value, statName = text:match("^%+(%d+) (.+)$")
     if not value then
-        -- Try without + prefix: "12 Endurance"
+        -- Try without + prefix: "12 Stamina"
         value, statName = text:match("^(%d+) (.+)$")
     end
 
     if value and statName then
         statName = statName:lower()
-
-        if statName:find("force") then
-            stats.strength = tonumber(value) or 0
-        elseif statName:find("agilit") then
-            stats.agility = tonumber(value) or 0
-        elseif statName:find("endurance") then
-            stats.stamina = tonumber(value) or 0
-        elseif statName:find("intelligence") or statName:find("intellect") then
-            stats.intellect = tonumber(value) or 0
-        elseif statName:find("esprit") or statName:find("spirit") then
-            stats.spirit = tonumber(value) or 0
+        for _, entry in ipairs(L.stat_names) do
+            if statName:find(entry.pattern) then
+                stats[entry.key] = tonumber(value) or 0
+                return
+            end
         end
     end
 end
