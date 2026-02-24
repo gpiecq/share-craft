@@ -1,11 +1,14 @@
 ## Interface: 40400
 ## Title: ShareCraft
-## Notes: Exporte les recettes de metiers au format CSV
+## Notes: Exporte et partage les recettes de metiers entre membres de guilde
 ## Author: gpiecq
-## Version: 1.0.1
+## Version: 2.0.0
+## SavedVariables: ShareCraftGuildDB
 ## SavedVariablesPerCharacter: ShareCraftDB
 
 Data.lua
+GuildDB.lua
+Comm.lua
 Core.lua
 Scanner.lua
 Export.lua

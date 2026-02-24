@@ -1,11 +1,12 @@
 # ShareCraft
 
-Addon World of Warcraft pour **WoW Anniversary Edition (TBC)** qui permet d'exporter les recettes de metiers au format CSV, directement depuis le jeu.
+Addon World of Warcraft pour **WoW Anniversary Edition (Cataclysm Classic)** qui permet d'exporter les recettes de metiers au format CSV et de **partager les recettes entre membres de guilde** via un systeme de synchronisation automatique.
 
-Ideal pour suivre sa progression, partager ses recettes ou analyser ses donnees dans Excel / Google Sheets.
+Ideal pour suivre sa progression, voir qui craft quoi dans la guilde, et analyser ses donnees dans Excel / Google Sheets. Localisation complete **FR/EN**.
 
 ## Fonctionnalites
 
+### Recettes personnelles
 - **Scan automatique** des recettes a l'ouverture d'un metier
 - **Export CSV** avec separateur `;` (compatible Excel FR / Google Sheets)
 - **Statistiques de l'objet** : Armure, Force, Agilite, Endurance, Intelligence, Esprit
@@ -14,8 +15,21 @@ Ideal pour suivre sa progression, partager ses recettes ou analyser ses donnees 
 - **Liens Wowhead** automatiques pour chaque recette
 - **Filtre par categorie** (Cuir, Mailles, Tissu, etc.)
 - **Bouton Export CSV** integre a la fenetre de metier
+
+### Partage de guilde (V2.0)
+- **Synchronisation automatique** des recettes entre membres de guilde via canal addon GUILD
+- **Protocole hash-based** : seules les donnees modifiees sont echangees (HELLO/REQUEST/DATA)
+- **Onglet "Guilde"** : recherche par joueur, metier et recette parmi toutes les recettes de la guilde
+- **Onglet "Membres"** : liste des joueurs synchronises avec nombre de recettes et date du dernier scan
+- **Export CSV guilde** : memes colonnes que l'export personnel + colonne "Dernier scan"
+- **Vie privee** : choix par metier de partager ou non ses recettes (opt-in par defaut)
+- **Tooltip enrichi** : survoler un objet montre les artisans de guilde capables de le crafter
+- **Bouton minimap** pour acceder rapidement a l'interface
+
+### General
+- **Localisation FR/EN** complete (UI, messages, CSV headers, patterns de parsing)
 - **Interface ElvUI-compatible** (theme sombre, bordures fines, boutons plats)
-- **Donnees persistantes** entre sessions (SavedVariablesPerCharacter)
+- **Donnees persistantes** entre sessions (SavedVariablesPerCharacter + SavedVariables guilde)
 
 ## Installation
 
@@ -29,6 +43,8 @@ Ideal pour suivre sa progression, partager ses recettes ou analyser ses donnees 
    Interface/AddOns/ShareCraft/
      ShareCraft.toc
      Data.lua
+     GuildDB.lua
+     Comm.lua
      Core.lua
      Scanner.lua
      Export.lua
@@ -66,6 +82,8 @@ Dans la fenetre d'export :
 | `/sc` | Ouvre/ferme la fenetre principale |
 | `/sc debug` | Active/desactive le mode debug |
 | `/sc scan` | Force un scan manuel (fenetre de metier ouverte) |
+| `/sc sync` | Force une re-synchronisation guilde (reset des cooldowns) |
+| `/sc privacy` | Ouvre la fenetre de vie privee (choix par metier) |
 
 ## Format CSV
 
@@ -155,17 +173,20 @@ Chaque recette genere **une ligne par composant**, ce qui permet de creer des ta
 ```
 ShareCraft/
   ShareCraft.toc   -- Metadata addon, version, load order
-  Data.lua         -- Constantes (URL Wowhead)
+  Data.lua         -- Constantes, namespace SC, localisation (SC.L)
+  GuildDB.lua      -- Base de donnees guilde (CRUD, hash DJB2, recherche)
+  Comm.lua         -- Protocole de communication (HELLO/REQUEST/DATA, chunking)
   Core.lua         -- Events, slash commands, debug
   Scanner.lua      -- Scan des recettes, tooltip, stats
-  Export.lua       -- Generation CSV, echappement
-  UI.lua           -- Fenetres (principale, export, bouton metier)
+  Export.lua       -- Generation CSV personnel et guilde
+  UI.lua           -- Onglets (Mes recettes / Guilde / Membres), export, minimap
 ```
 
 ## Compatibilite
 
-- **Client** : WoW Anniversary Edition (TBC)
+- **Client** : WoW Anniversary Edition (Cataclysm Classic ~4.4.x)
 - **Interface** : 40400
+- **Langues** : Francais, Anglais
 - **UI** : Compatible ElvUI (theme sombre natif)
 
 ## Licence

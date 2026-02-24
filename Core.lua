@@ -1,4 +1,5 @@
 local addonName, SC = ...
+local L = SC.L
 
 -- Debug mode (toggle with /sc debug)
 SC.debug = false
@@ -20,6 +21,7 @@ frame:RegisterEvent("TRADE_SKILL_SHOW")
 frame:RegisterEvent("TRADE_SKILL_UPDATE")
 frame:RegisterEvent("CRAFT_SHOW")
 frame:RegisterEvent("CRAFT_UPDATE")
+frame:RegisterEvent("PLAYER_ENTERING_WORLD")
 
 local scanPending = false
 local craftScanPending = false
@@ -30,7 +32,8 @@ frame:SetScript("OnEvent", function(self, event, ...)
         if name == addonName then
             ShareCraftDB = ShareCraftDB or {}
             SC.db = ShareCraftDB
-            print("|cff00ccff[ShareCraft]|r Addon charge. Tapez /sc pour ouvrir.")
+            SC:CreateMinimapButton()
+            print("|cff00ccff[ShareCraft]|r " .. L.msg_addon_loaded)
             self:UnregisterEvent("ADDON_LOADED")
         end
     elseif event == "TRADE_SKILL_SHOW" then
@@ -67,6 +70,16 @@ frame:SetScript("OnEvent", function(self, event, ...)
                 SC:ScanCraft()
             end)
         end
+    elseif event == "PLAYER_ENTERING_WORLD" then
+        debugPrint("Event: PLAYER_ENTERING_WORLD")
+        SC:InitGuildDB()
+        SC:InitComm()
+        SC:UpdateMyCharacterData()
+        SC:CleanOldMembers()
+        -- Delay SendHello to let guild channel initialize
+        C_Timer.After(5, function()
+            SC:SendHello()
+        end)
     end
 end)
 
@@ -78,13 +91,26 @@ SlashCmdList["SHARECRAFT"] = function(msg)
 
     if msg == "debug" then
         SC.debug = not SC.debug
-        print("|cff00ccff[ShareCraft]|r Debug " .. (SC.debug and "active" or "desactive"))
+        print("|cff00ccff[ShareCraft]|r " .. (SC.debug and L.msg_debug_enabled or L.msg_debug_disabled))
         return
     end
 
     if msg == "scan" then
-        print("|cff00ccff[ShareCraft]|r Scan manuel...")
+        print("|cff00ccff[ShareCraft]|r " .. L.msg_scan_manual)
         SC:ScanTradeSkill()
+        return
+    end
+
+    if msg == "sync" then
+        print("|cff00ccff[ShareCraft]|r " .. L.msg_manual_sync)
+        SC:UpdateMyCharacterData()
+        SC.syncCooldowns = {}  -- Reset cooldowns for force sync
+        SC:SendHello()
+        return
+    end
+
+    if msg == "privacy" then
+        SC:TogglePrivacyWindow()
         return
     end
 
