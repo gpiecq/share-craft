@@ -26,9 +26,9 @@ jobs:
 
       - name: Build zip
         run: |
-          cp ShareCraft.toc Data.lua Core.lua Scanner.lua Export.lua UI.lua /tmp/
+          cp ShareCraft.toc Data.lua GuildDB.lua Comm.lua Core.lua Scanner.lua Export.lua UI.lua /tmp/
           cd /tmp
-          zip ShareCraft.zip ShareCraft.toc Data.lua Core.lua Scanner.lua Export.lua UI.lua
+          zip ShareCraft.zip ShareCraft.toc Data.lua GuildDB.lua Comm.lua Core.lua Scanner.lua Export.lua UI.lua
           cp ShareCraft.zip "$GITHUB_WORKSPACE/"
 
       - name: Create GitHub Release
