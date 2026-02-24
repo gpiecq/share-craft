@@ -6,6 +6,8 @@ local addonName, SC = ...
 
 SC.chunkBuffers = {}
 SC.syncCooldowns = {}
+SC.sendQueue = {}
+SC.sendQueueRunning = false
 
 -- ============================================================
 -- Recipe Serialization
@@ -134,37 +136,25 @@ function SC:SendHello()
         return
     end
 
-    -- Get hashes for ALL known guild members (relay)
+    -- Only broadcast our own data (no relay to avoid message flooding)
+    local myKey = SC:GetMyCharKey()
     local allHashes = SC:GetAllGuildHashes()
-    if not allHashes or not next(allHashes) then
-        SC.debugPrint("SendHello: no data to share")
+    if not allHashes or not allHashes[myKey] then
+        SC.debugPrint("SendHello: no own data to share")
         return
     end
 
-    -- Send one HELLO per member, with delay between each
-    local msgIndex = 0
-    for memberKey, profHashes in pairs(allHashes) do
-        local parts = {}
-        for profName, hash in pairs(profHashes) do
-            table.insert(parts, profName .. "=" .. hash)
-        end
+    local parts = {}
+    for profName, hash in pairs(allHashes[myKey]) do
+        table.insert(parts, profName .. "=" .. hash)
+    end
 
-        if #parts > 0 then
-            local payload = memberKey .. ":" .. table.concat(parts, ",")
-            local msg = SC.COMM_VERSION .. "|HELLO|" .. payload
-
-            if msgIndex == 0 then
-                SC:ChunkAndSend(nil, msg, "GUILD")
-                SC.debugPrint("SendHello broadcast: " .. msg)
-            else
-                local delay = msgIndex * SC.CHUNK_INTERVAL
-                C_Timer.After(delay, function()
-                    SC:ChunkAndSend(nil, msg, "GUILD")
-                    SC.debugPrint("SendHello relay broadcast: " .. msg)
-                end)
-            end
-            msgIndex = msgIndex + 1
-        end
+    if #parts > 0 then
+        local payload = myKey .. ":" .. table.concat(parts, ",")
+        local msg = SC.COMM_VERSION .. "|HELLO|" .. payload
+        C_ChatInfo.SendAddonMessage(SC.COMM_PREFIX, msg, "GUILD")
+        SC.debugPrint("SendHello broadcast: " .. msg)
+        print(string.format("|cff00ccff[ShareCraft]|r " .. SC.L.msg_sync_sent, #parts))
     end
 end
 
@@ -463,15 +453,35 @@ end
 -- Chunking & Sending
 -- ============================================================
 
+-- Queue a single message for throttled sending
+function SC:QueueMessage(msg, channelType, target)
+    table.insert(SC.sendQueue, { msg = msg, channel = channelType, target = target })
+    SC:ProcessQueue()
+end
+
+-- Process the send queue one message at a time
+function SC:ProcessQueue()
+    if SC.sendQueueRunning or #SC.sendQueue == 0 then return end
+    SC.sendQueueRunning = true
+
+    local entry = table.remove(SC.sendQueue, 1)
+    if entry.channel == "GUILD" then
+        C_ChatInfo.SendAddonMessage(SC.COMM_PREFIX, entry.msg, "GUILD")
+    else
+        C_ChatInfo.SendAddonMessage(SC.COMM_PREFIX, entry.msg, "WHISPER", entry.target)
+    end
+
+    C_Timer.After(SC.CHUNK_INTERVAL, function()
+        SC.sendQueueRunning = false
+        SC:ProcessQueue()
+    end)
+end
+
 function SC:ChunkAndSend(target, fullMsg, channelType)
     local maxLen = SC.MAX_PAYLOAD
 
     if #fullMsg <= maxLen then
-        if channelType == "GUILD" then
-            C_ChatInfo.SendAddonMessage(SC.COMM_PREFIX, fullMsg, "GUILD")
-        else
-            C_ChatInfo.SendAddonMessage(SC.COMM_PREFIX, fullMsg, "WHISPER", target)
-        end
+        SC:QueueMessage(fullMsg, channelType, target)
         return
     end
 
@@ -500,23 +510,11 @@ function SC:ChunkAndSend(target, fullMsg, channelType)
         local totalChunks = #chunks
         for i, chunk in ipairs(chunks) do
             local chunkMsg = version .. "|DATACHUNK|" .. charKey .. "|" .. profName .. "|" .. scanTime .. "|" .. i .. "/" .. totalChunks .. "|" .. chunk
-
-            C_Timer.After((i - 1) * SC.CHUNK_INTERVAL, function()
-                if channelType == "GUILD" then
-                    C_ChatInfo.SendAddonMessage(SC.COMM_PREFIX, chunkMsg, "GUILD")
-                else
-                    C_ChatInfo.SendAddonMessage(SC.COMM_PREFIX, chunkMsg, "WHISPER", target)
-                end
-                SC.debugPrint("Sent chunk " .. i .. "/" .. totalChunks)
-            end)
+            SC:QueueMessage(chunkMsg, channelType, target)
         end
+        SC.debugPrint("ChunkAndSend: queued " .. totalChunks .. " chunks")
     else
-        -- Non-DATA messages that are too long: just send as-is (shouldn't happen normally)
-        if channelType == "GUILD" then
-            C_ChatInfo.SendAddonMessage(SC.COMM_PREFIX, fullMsg, "GUILD")
-        else
-            C_ChatInfo.SendAddonMessage(SC.COMM_PREFIX, fullMsg, "WHISPER", target)
-        end
+        SC:QueueMessage(fullMsg, channelType, target)
     end
 end
 

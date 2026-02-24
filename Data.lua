@@ -8,7 +8,7 @@ SC.COMM_PREFIX = "ShareCraft"
 SC.COMM_VERSION = 3
 SC.MAX_PAYLOAD = 240
 SC.SYNC_COOLDOWN = 300       -- 5min between syncs with same player
-SC.CHUNK_INTERVAL = 0.2      -- delay between chunks (throttle)
+SC.CHUNK_INTERVAL = 0.5      -- delay between outgoing messages (throttle)
 SC.BUFFER_TIMEOUT = 60       -- seconds before incomplete chunk buffers are cleaned
 SC.MEMBER_MAX_AGE = 30 * 24 * 3600  -- 30 days before old members are cleaned
 
@@ -83,6 +83,7 @@ if GetLocale() == "frFR" then
     -- Messages
     L.msg_no_profession       = "Aucun metier selectionne."
     L.msg_manual_sync         = "Synchronisation manuelle..."
+    L.msg_sync_sent           = "Donnees envoyees a la guilde (%d metier(s))."
     L.msg_no_profession_open  = "Aucun metier ouvert."
     L.msg_no_recipes_export   = "Aucune recette a exporter pour ce filtre."
     L.msg_no_guild_export     = "Aucune recette de guilde a exporter."
@@ -238,6 +239,7 @@ else -- English (default)
     -- Messages
     L.msg_no_profession       = "No profession selected."
     L.msg_manual_sync         = "Manual synchronization..."
+    L.msg_sync_sent           = "Data sent to guild (%d profession(s))."
     L.msg_no_profession_open  = "No profession open."
     L.msg_no_recipes_export   = "No recipes to export for this filter."
     L.msg_no_guild_export     = "No guild recipes to export."
