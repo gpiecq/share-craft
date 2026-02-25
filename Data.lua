@@ -9,7 +9,7 @@ SC.COMM_VERSION = 3
 SC.MAX_PAYLOAD = 240
 SC.SYNC_COOLDOWN = 300       -- 5min between syncs with same player
 SC.CHUNK_INTERVAL = 0.5      -- delay between outgoing messages (throttle)
-SC.BUFFER_TIMEOUT = 60       -- seconds before incomplete chunk buffers are cleaned
+SC.BUFFER_TIMEOUT = 180      -- seconds before incomplete chunk buffers are cleaned
 SC.MEMBER_MAX_AGE = 30 * 24 * 3600  -- 30 days before old members are cleaned
 
 -- ============================================================
