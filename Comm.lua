@@ -8,6 +8,8 @@ SC.chunkBuffers = {}
 SC.syncCooldowns = {}
 SC.sendQueue = {}
 SC.sendQueueRunning = false
+SC.recentMessages = {}
+SC.requestCooldowns = {}
 
 -- ============================================================
 -- Recipe Serialization
@@ -220,6 +222,15 @@ function SC:HandleMessage(msg, channel, sender)
 
     SC.debugPrint("HandleMessage from " .. sender .. " [" .. channel .. "]: " .. msg:sub(1, 80))
 
+    -- Deduplicate: skip if we just saw this exact message
+    local dedupKey = sender .. msg
+    local now = GetTime()
+    if SC.recentMessages[dedupKey] and (now - SC.recentMessages[dedupKey]) < 2 then
+        SC.debugPrint("HandleMessage: duplicate, skipping")
+        return
+    end
+    SC.recentMessages[dedupKey] = now
+
     -- Parse version|type|payload
     local version, msgType, payload = msg:match("^(%d+)|(%a+)|(.+)$")
     if not version then
@@ -323,6 +334,14 @@ function SC:HandleRequest(sender, payload)
         return
     end
 
+    -- Cooldown: don't resend same data to same target within 60s
+    local reqKey = sender .. ":" .. charKey .. ":" .. profName
+    local now = time()
+    if SC.requestCooldowns[reqKey] and (now - SC.requestCooldowns[reqKey]) < 60 then
+        SC.debugPrint("HandleRequest: cooldown for " .. reqKey)
+        return
+    end
+
     -- Check if we have data for this member (own data or relayed)
     local member = SC:GetMemberData(charKey)
     if not member or not member.professions or not member.professions[profName] then
@@ -337,8 +356,9 @@ function SC:HandleRequest(sender, payload)
         return
     end
 
+    SC.requestCooldowns[reqKey] = now
     SC:SendData(sender, charKey, profName)
-    SC.debugPrint("HandleRequest: relaying data for " .. charKey .. "/" .. profName .. " to " .. sender)
+    SC.debugPrint("HandleRequest: sending data for " .. charKey .. "/" .. profName .. " to " .. sender)
 end
 
 -- ============================================================
@@ -544,6 +564,19 @@ function SC:CleanChunkBuffers()
         if (now - buffer.timestamp) > SC.BUFFER_TIMEOUT then
             SC.debugPrint("CleanChunkBuffers: removing stale buffer " .. key)
             SC.chunkBuffers[key] = nil
+        end
+    end
+    -- Clean dedup cache (entries older than 10s)
+    local nowPrecise = GetTime()
+    for key, ts in pairs(SC.recentMessages) do
+        if (nowPrecise - ts) > 10 then
+            SC.recentMessages[key] = nil
+        end
+    end
+    -- Clean request cooldowns (entries older than 120s)
+    for key, ts in pairs(SC.requestCooldowns) do
+        if (now - ts) > 120 then
+            SC.requestCooldowns[key] = nil
         end
     end
 end
