@@ -1,5 +1,21 @@
 # Changelog
 
+## [2.0.1] - 2026-02-26
+
+### Corrections
+- Description des enchantements manquante (fallback via GetCraftDescription)
+- Crash/deconnexion lors de la synchronisation guilde (flood de messages addon)
+- Messages addon recus en double par le client WoW (deduplication)
+- Reponses REQUEST repetees au meme joueur (cooldown 60s)
+- Timeout des chunks trop court pour les gros transferts (60s → 180s)
+- Metiers desappris toujours partages a la guilde (nettoyage automatique via GetProfessions)
+
+### Technique
+- File d'attente globale pour les messages sortants (QueueMessage/ProcessQueue)
+- SendHello n'envoie plus que ses propres donnees (suppression du relay)
+- Intervalle entre messages : 0.2s → 0.5s
+- Message de confirmation apres synchronisation (`/sc sync`)
+
 ## [2.0.0] - 2026-02-24
 
 ### Ajouts
