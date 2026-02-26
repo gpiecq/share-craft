@@ -42,8 +42,37 @@ function SC:GetGuildMembers()
     return SC.guildDB.members[guildName]
 end
 
+-- Remove professions the player has unlearned from SavedVariablesPerCharacter
+function SC:CleanUnlearnedProfessions()
+    if not SC.db then return end
+
+    local currentProfs = {}
+    local profIndices = {GetProfessions()}
+    for _, profIndex in pairs(profIndices) do
+        if profIndex then
+            local name = GetProfessionInfo(profIndex)
+            if name then
+                currentProfs[name] = true
+            end
+        end
+    end
+
+    -- Don't clean if we couldn't detect any profession (API not ready)
+    if not next(currentProfs) then return end
+
+    for key, data in pairs(SC.db) do
+        if type(data) == "table" and data.recipes and not currentProfs[key] then
+            SC.debugPrint("CleanUnlearned: removing " .. key)
+            SC.db[key] = nil
+        end
+    end
+end
+
 function SC:UpdateMyCharacterData()
     if not SC.guildDB or not SC.db then return end
+
+    -- Clean up unlearned professions before syncing
+    SC:CleanUnlearnedProfessions()
 
     local charKey = SC:GetMyCharKey()
     if not charKey then return end
