@@ -1,5 +1,10 @@
 # Changelog
 
+## [2.0.3] - 2026-03-01
+
+### Fixes
+- Addon marked as outdated (updated Interface version to 20505 for Anniversary Edition)
+
 ## [2.0.2] - 2026-03-01
 
 ### Fixes
