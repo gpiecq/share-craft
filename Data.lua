@@ -13,6 +13,72 @@ SC.BUFFER_TIMEOUT = 180      -- seconds before incomplete chunk buffers are clea
 SC.MEMBER_MAX_AGE = 30 * 24 * 3600  -- 30 days before old members are cleaned
 
 -- ============================================================
+-- Profession cross-locale mapping
+-- ============================================================
+
+-- Profession base spell IDs (same across all locales)
+local PROF_SPELL_IDS = {
+    2259, 2018, 7411, 4036, 2366, 45357, 25229, 2108, 2575, 8613, 3908, 2550, 3273, 7620, 78670
+}
+
+-- Hardcoded profession names for cross-locale matching (EN + FR)
+local PROF_NAMES_BY_ID = {
+    [2259]  = { "Alchemy", "Alchimie" },
+    [2018]  = { "Blacksmithing", "Forge" },
+    [7411]  = { "Enchanting", "Enchantement" },
+    [4036]  = { "Engineering", "Ingénierie", "Ingenierie" },
+    [2366]  = { "Herbalism", "Herboristerie" },
+    [45357] = { "Inscription", "Calligraphie" },
+    [25229] = { "Jewelcrafting", "Joaillerie" },
+    [2108]  = { "Leatherworking", "Travail du cuir" },
+    [2575]  = { "Mining", "Minage" },
+    [8613]  = { "Skinning", "Dépeçage", "Depeçage" },
+    [3908]  = { "Tailoring", "Couture" },
+    [2550]  = { "Cooking", "Cuisine" },
+    [3273]  = { "First Aid", "Secourisme", "Premiers soins" },
+    [7620]  = { "Fishing", "Pêche", "Peche" },
+    [78670] = { "Archaeology", "Archéologie", "Archeologie" },
+}
+
+-- Runtime lookup: any known profession name (any locale) -> spell ID
+SC.profNameToID = {}
+
+-- Build the profession name -> ID mapping (call after PLAYER_ENTERING_WORLD)
+function SC:BuildProfessionMap()
+    -- Hardcoded names (EN + FR + accent variants)
+    for spellID, names in pairs(PROF_NAMES_BY_ID) do
+        for _, name in ipairs(names) do
+            SC.profNameToID[name] = spellID
+        end
+    end
+    -- Add current client locale names via GetSpellInfo
+    for _, spellID in ipairs(PROF_SPELL_IDS) do
+        local name = GetSpellInfo(spellID)
+        if name then
+            SC.profNameToID[name] = spellID
+        end
+    end
+end
+
+-- Check if two profession names refer to the same profession
+function SC:SameProfession(name1, name2)
+    if name1 == name2 then return true end
+    local id1 = SC.profNameToID[name1]
+    local id2 = SC.profNameToID[name2]
+    return id1 ~= nil and id1 == id2
+end
+
+-- Get the localized profession name for the current client
+function SC:GetLocalProfName(profName)
+    local id = SC.profNameToID[profName]
+    if id then
+        local localName = GetSpellInfo(id)
+        if localName then return localName end
+    end
+    return profName
+end
+
+-- ============================================================
 -- Localization
 -- ============================================================
 
