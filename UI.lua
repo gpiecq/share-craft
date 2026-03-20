@@ -228,6 +228,11 @@ local function GetDisplayName(recipe)
             local localName = GetItemInfo(recipe.itemID)
             if localName then return localName end
         end
+        -- Enchantments: use localized spell name
+        if recipe.spellID then
+            local localSpellName = GetSpellInfo(recipe.spellID)
+            if localSpellName then return localSpellName end
+        end
         return recipe.itemName or recipe.name
     end
     return recipe
@@ -236,11 +241,16 @@ end
 -- Tooltip: find recipe details from own ShareCraftDB
 local function FindRecipeDetails(recipeName, professionName)
     if not SC.db then return nil end
-    -- Search in specific profession first
-    if professionName and SC.db[professionName] and SC.db[professionName].recipes then
-        for _, recipe in ipairs(SC.db[professionName].recipes) do
-            if recipe.name == recipeName then
-                return recipe, professionName
+    -- Search in specific profession first (exact match or cross-locale match)
+    if professionName then
+        for profName, profData in pairs(SC.db) do
+            if type(profData) == "table" and profData.recipes
+                and SC:SameProfession(profName, professionName) then
+                for _, recipe in ipairs(profData.recipes) do
+                    if recipe.name == recipeName then
+                        return recipe, SC:GetLocalProfName(profName)
+                    end
+                end
             end
         end
     end
@@ -249,7 +259,7 @@ local function FindRecipeDetails(recipeName, professionName)
         if type(profData) == "table" and profData.recipes then
             for _, recipe in ipairs(profData.recipes) do
                 if recipe.name == recipeName then
-                    return recipe, profName
+                    return recipe, SC:GetLocalProfName(profName)
                 end
             end
         end
@@ -265,7 +275,7 @@ local function ShowRecipeTooltip(frame, recipeName, professionName, guildRecipeD
     local recipe, foundProf = FindRecipeDetails(recipeName, professionName)
     if not recipe and guildRecipeData then
         recipe = guildRecipeData
-        foundProf = professionName
+        foundProf = SC:GetLocalProfName(professionName)
     end
     if recipe then
         -- Item name (colored by quality/rarity)
@@ -492,12 +502,19 @@ function RefreshGuildResults()
 
     for _, entry in ipairs(results) do
         local profName = entry.profession
+        local localProfName = SC:GetLocalProfName(profName)
         for _, recipe in ipairs(entry.recipes) do
             local recipeName = type(recipe) == "table" and recipe.name or recipe
             local displayName = GetDisplayName(recipe)
-            -- Group by itemID when available (cross-locale), else by display name
-            local groupKey = (type(recipe) == "table" and recipe.itemID)
-                and ("id:" .. recipe.itemID) or displayName
+            -- Group by itemID when available (cross-locale), else by spellID, else by display name
+            local groupKey
+            if type(recipe) == "table" and recipe.itemID then
+                groupKey = "id:" .. recipe.itemID
+            elseif type(recipe) == "table" and recipe.spellID then
+                groupKey = "spell:" .. recipe.spellID
+            else
+                groupKey = displayName
+            end
             playersSet[entry.charKey] = true
 
             if not recipeMap[groupKey] then
@@ -505,7 +522,7 @@ function RefreshGuildResults()
                     name = recipeName,
                     displayName = displayName,
                     recipe = recipe,
-                    profName = profName,
+                    profName = localProfName,
                     crafters = {},
                 }
                 table.insert(recipeOrder, groupKey)
@@ -673,11 +690,12 @@ function RefreshMembersList()
             for _, prof in ipairs(profList) do
                 local recipeCount = prof.data.recipes and #prof.data.recipes or 0
                 local profScanDate = FormatScanTime(prof.data.scanTime)
+                local localProfName = SC:GetLocalProfName(prof.name)
 
                 fsIndex = fsIndex + 1
                 local profFS = GetOrCreateMemberFS(scrollChild, fsIndex)
                 profFS:SetPoint("TOPLEFT", scrollChild, "TOPLEFT", 20, -yOffset)
-                profFS:SetText(string.format(L.members_recipes_fmt, prof.name, recipeCount, profScanDate))
+                profFS:SetText(string.format(L.members_recipes_fmt, localProfName, recipeCount, profScanDate))
                 profFS:SetTextColor(unpack(COLOR_TEXT))
                 profFS:SetFont("Fonts\\FRIZQT__.TTF", 10)
                 profFS:Show()

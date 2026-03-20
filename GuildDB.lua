@@ -325,8 +325,15 @@ function SC:FindCrafters(itemName)
                             if (recipeName and recipeName:lower() == itemLower)
                                 or (recipeItemName and recipeItemName:lower() == itemLower) then
                                 matched = true
-                            -- 3. Normalized match (handles preposition differences)
-                            elseif recipeName then
+                            -- 3. Cross-locale: match by localized spell name (enchantments)
+                            elseif recipeData and recipeData.spellID then
+                                local localSpellName = GetSpellInfo(recipeData.spellID)
+                                if localSpellName and localSpellName:lower() == itemLower then
+                                    matched = true
+                                end
+                            end
+                            -- 4. Normalized match (handles preposition differences)
+                            if not matched and recipeName then
                                 if NormalizeName(recipeName) == itemNorm then
                                     matched = true
                                 end
@@ -334,10 +341,11 @@ function SC:FindCrafters(itemName)
                         end
 
                         if matched then
-                            if not result[profName] then
-                                result[profName] = {}
+                            local localProf = SC:GetLocalProfName(profName)
+                            if not result[localProf] then
+                                result[localProf] = {}
                             end
-                            table.insert(result[profName], charKey)
+                            table.insert(result[localProf], charKey)
                             break
                         end
                     end
@@ -374,7 +382,22 @@ function SC:SearchByRecipe(query)
                 if profData.recipes then
                     for _, recipe in ipairs(profData.recipes) do
                         local recipeName = type(recipe) == "table" and recipe.name or recipe
-                        if recipeName:lower():find(query, 1, true) then
+                        local matched = recipeName:lower():find(query, 1, true)
+                        -- Cross-locale: also search by localized item name
+                        if not matched and type(recipe) == "table" and recipe.itemID then
+                            local localName = GetItemInfo(recipe.itemID)
+                            if localName then
+                                matched = localName:lower():find(query, 1, true)
+                            end
+                        end
+                        -- Cross-locale: fallback to localized spell name (enchantments)
+                        if not matched and type(recipe) == "table" and recipe.spellID then
+                            local localSpellName = GetSpellInfo(recipe.spellID)
+                            if localSpellName then
+                                matched = localSpellName:lower():find(query, 1, true)
+                            end
+                        end
+                        if matched then
                             table.insert(results, {
                                 charKey = charKey,
                                 profession = profName,
@@ -432,12 +455,28 @@ function SC:SearchGuild(playerFilter, profFilter, recipeFilter)
         if playerFilter == "All" or charKey == playerFilter then
             if member.professions then
                 for profName, profData in pairs(member.professions) do
-                    if profFilter == "All" or profName == profFilter then
+                    if profFilter == "All" or SC:SameProfession(profName, profFilter) then
                         if profData.recipes then
                             local matchingRecipes = {}
                             for _, recipe in ipairs(profData.recipes) do
                                 local recipeName = type(recipe) == "table" and recipe.name or recipe
-                                if not recipeFilter or recipeFilter == "" or recipeName:lower():find(recipeFilter:lower(), 1, true) then
+                                local matched = not recipeFilter or recipeFilter == ""
+                                    or recipeName:lower():find(recipeFilter:lower(), 1, true)
+                                -- Cross-locale: also search by localized item name
+                                if not matched and type(recipe) == "table" and recipe.itemID then
+                                    local localName = GetItemInfo(recipe.itemID)
+                                    if localName then
+                                        matched = localName:lower():find(recipeFilter:lower(), 1, true)
+                                    end
+                                end
+                                -- Cross-locale: fallback to localized spell name (enchantments)
+                                if not matched and type(recipe) == "table" and recipe.spellID then
+                                    local localSpellName = GetSpellInfo(recipe.spellID)
+                                    if localSpellName then
+                                        matched = localSpellName:lower():find(recipeFilter:lower(), 1, true)
+                                    end
+                                end
+                                if matched then
                                     table.insert(matchingRecipes, recipe)
                                     totalRecipes = totalRecipes + 1
                                 end
@@ -488,19 +527,23 @@ function SC:GetGuildPlayers()
 end
 
 function SC:GetGuildProfessions()
-    local profSet = {}
+    local seen = {}   -- canonical ID (or raw name) -> localized name
     local guildMembers = SC:GetGuildMembers()
     if not guildMembers then return {} end
     for _, member in pairs(guildMembers) do
         if member.professions then
             for profName in pairs(member.professions) do
-                profSet[profName] = true
+                local localName = SC:GetLocalProfName(profName)
+                local id = SC.profNameToID[profName] or profName
+                if not seen[id] then
+                    seen[id] = localName
+                end
             end
         end
     end
     local profList = {}
-    for profName in pairs(profSet) do
-        table.insert(profList, profName)
+    for _, localName in pairs(seen) do
+        table.insert(profList, localName)
     end
     table.sort(profList)
     return profList

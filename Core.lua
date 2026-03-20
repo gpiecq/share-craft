@@ -72,6 +72,7 @@ frame:SetScript("OnEvent", function(self, event, ...)
         end
     elseif event == "PLAYER_ENTERING_WORLD" then
         debugPrint("Event: PLAYER_ENTERING_WORLD")
+        SC:BuildProfessionMap()
         SC:InitGuildDB()
         SC:InitComm()
         SC:UpdateMyCharacterData()

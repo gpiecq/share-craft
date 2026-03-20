@@ -2,7 +2,7 @@
 ## Title: ShareCraft
 ## Notes: Exporte et partage les recettes de metiers entre membres de guilde
 ## Author: gpiecq
-## Version: 2.0.3
+## Version: 2.0.4
 ## SavedVariables: ShareCraftGuildDB
 ## SavedVariablesPerCharacter: ShareCraftDB
 

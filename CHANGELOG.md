@@ -1,5 +1,19 @@
 # Changelog
 
+## [2.0.4] - 2026-03-20
+
+### Fixes
+- Cross-locale enchanting recipe search (FR player can now find EN player's enchantments and vice versa)
+- Profession filter in Guild tab now matches across locales (e.g. "Enchanting" = "Enchantement")
+- Duplicate profession entries in Guild dropdown when members use different game languages
+- Profession names displayed in the local client's language everywhere (Guild tab, Members tab, tooltips, CSV export)
+- Enchanting recipes now grouped by spellID in Guild tab results (prevents duplicates across locales)
+
+### Technical
+- New profession cross-locale mapping system (spell ID based, EN + FR hardcoded + GetSpellInfo for any locale)
+- SC:BuildProfessionMap(), SC:SameProfession(), SC:GetLocalProfName() in Data.lua
+- FindRecipeDetails and FindLocalRecipe now search across locale-variant profession names
+
 ## [2.0.3] - 2026-03-01
 
 ### Fixes

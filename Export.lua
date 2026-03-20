@@ -130,16 +130,23 @@ end
 -- Guild CSV Export
 -- ============================================================
 
--- Find recipe details from local ShareCraftDB
+-- Find recipe details from local ShareCraftDB (cross-locale aware)
 local function FindLocalRecipe(recipeName, professionName)
     if not SC.db then return nil end
-    if professionName and SC.db[professionName] and SC.db[professionName].recipes then
-        for _, recipe in ipairs(SC.db[professionName].recipes) do
-            if recipe.name == recipeName then
-                return recipe
+    -- Search in matching profession first (cross-locale)
+    if professionName then
+        for profName, profData in pairs(SC.db) do
+            if type(profData) == "table" and profData.recipes
+                and SC:SameProfession(profName, professionName) then
+                for _, recipe in ipairs(profData.recipes) do
+                    if recipe.name == recipeName then
+                        return recipe
+                    end
+                end
             end
         end
     end
+    -- Fallback: search all professions
     for profName, profData in pairs(SC.db) do
         if type(profData) == "table" and profData.recipes then
             for _, recipe in ipairs(profData.recipes) do
@@ -189,6 +196,7 @@ function SC:GenerateGuildCSV(playerFilter, profFilter, recipeFilter)
         if entry.scanTime then
             scanDate = date("%d/%m/%Y", entry.scanTime)
         end
+        local localProfName = SC:GetLocalProfName(entry.profession)
 
         for _, recipeEntry in ipairs(entry.recipes) do
             local recipeName = type(recipeEntry) == "table" and recipeEntry.name or recipeEntry
@@ -207,7 +215,7 @@ function SC:GenerateGuildCSV(playerFilter, profFilter, recipeFilter)
             if not reagents or #reagents == 0 then
                 local line = table.concat({
                     csvEscape(entry.charKey),
-                    csvEscape(entry.profession),
+                    csvEscape(localProfName),
                     csvEscape(recipe and recipe.category or ""),
                     csvEscape(recipeName),
                     csvEscape(recipe and recipe.difficulty or ""),
@@ -229,7 +237,7 @@ function SC:GenerateGuildCSV(playerFilter, profFilter, recipeFilter)
                 for _, reagent in ipairs(reagents) do
                     local line = table.concat({
                         csvEscape(entry.charKey),
-                        csvEscape(entry.profession),
+                        csvEscape(localProfName),
                         csvEscape(recipe.category or ""),
                         csvEscape(recipeName),
                         csvEscape(recipe.difficulty or ""),
